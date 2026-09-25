@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Grocery Product Catalog</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f8f9fa; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .filter-box { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filter-group { display: inline-block; margin-right: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input, select, button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { padding: 8px 12px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; }
+        .btn-dash { background-color: #17a2b8; margin-left: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
+
+        /* Fixed styling for product images */
+        .card-img-container { width: 100%; height: 160px; overflow: hidden; border-radius: 6px; background-color: #eee; margin-bottom: 10px; }
+        .card-img-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        .price { color: #d9534f; font-size: 1.2em; font-weight: bold; margin: 8px 0; }
+        .btn-view { display: inline-block; margin-top: 10px; padding: 8px 12px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; }
+        .btn-view:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+<div class="header-bar">
+    <h1>Product Catalog</h1>
+    <div>
+        <a th:href="@{/product/new}" class="btn">+ Add New Product</a>
+        <a th:href="@{/staff/inventory}" class="btn btn-dash">Staff Dashboard</a>
+    </div>
+</div>
+
+<!-- Filter Form -->
+<div class="filter-box">
+    <form th:action="@{/catalog}" method="GET">
+        <div class="filter-group">
+            <label>Search Keyword:</label>
+            <input type="text" name="keyword" th:value="${keyword}" placeholder="Name or brand..."/>
+        </div>
+
+        <div class="filter-group">
+            <label>Category:</label>
+            <select name="categoryId">
+                <option value="">All Categories</option>
+                <option th:each="cat : ${categories}"
+                        th:value="${cat.id}"
+                        th:text="${cat.name}"
+                        th:selected="${cat.id == selectedCategoryId}"></option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label>Max Price ($):</label>
+            <input type="number" step="0.01" name="maxPrice" th:value="${maxPrice}" placeholder="e.g. 10.00"/>
+        </div>
+
+        <button type="submit" style="background-color: #007bff; color: white; border: none; cursor: pointer;">Filter Products</button>
+        <a th:href="@{/catalog}" style="margin-left: 10px; color: #6c757d;">Reset</a>
+    </form>
+</div>
+
+<!-- Product Grid -->
+<div class="grid">
+    <div class="card" th:each="item : ${items}">
+        <div>
+            <!-- Image Container with fallback handling -->
+            <div class="card-img-container">
+                <img th:src="${#lists.isEmpty(item.images) ? 'https://dummyimage.com/300x200/cccccc/000000.png&text=No+Image' : item.images[0].url}"
+                     alt="Product Image"
+                     onerror="this.onerror=null; this.src='https://dummyimage.com/300x200/cccccc/000000.png&text=Image+Not+Found';"/>
+            </div>
+
+            <h3 th:text="${item.name}" style="margin: 5px 0;">Item Name</h3>
+            <p th:text="${item.brandSupplier}" style="color: #6c757d; font-size: 0.9em; margin: 0;">Brand</p>
+            <p class="price" th:text="'$' + ${#numbers.formatDecimal(item.price, 1, 2)}">$0.00</p>
+        </div>
+
+        <a th:href="@{/product/{id}(id=${item.id})}" class="btn-view">View Details</a>
+    </div>
+</div>
+
+</body>
+</html>

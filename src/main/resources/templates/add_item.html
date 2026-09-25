@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Add New Product</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f8f9fa; }
+        .container { background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 80px; }
+        button { padding: 10px 15px; background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        button:hover { background-color: #218838; }
+        a { color: #007bff; text-decoration: none; display: inline-block; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Add New Grocery Item</h2>
+
+    <form th:action="@{/product/save}" th:object="${item}" method="POST">
+        <div class="form-group">
+            <label for="name">Product Name:</label>
+            <input type="text" id="name" th:field="*{name}" placeholder="e.g. Organic Bananas" required/>
+        </div>
+
+        <div class="form-group">
+            <label for="brandSupplier">Brand / Supplier:</label>
+            <input type="text" id="brandSupplier" th:field="*{brandSupplier}" placeholder="e.g. Fresh Farms" required/>
+        </div>
+
+        <div class="form-group">
+            <label for="category">Category:</label>
+            <select id="category" name="categoryId" required>
+                <option value="">Select Category</option>
+                <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"></option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="price">Price ($):</label>
+            <input type="number" step="0.01" id="price" th:field="*{price}" placeholder="e.g. 2.99" required/>
+        </div>
+
+        <div class="form-group">
+            <label for="availableStock">Initial Stock Quantity:</label>
+            <input type="number" id="availableStock" th:field="*{availableStock}" placeholder="e.g. 50" required/>
+        </div>
+
+        <div class="form-group">
+            <label for="imageUrl">Image URL (Optional):</label>
+            <input type="text" id="imageUrl" name="imageUrl" placeholder="e.g. https://images.unsplash.com/..."/>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <textarea id="description" th:field="*{description}" placeholder="Enter product description..."></textarea>
+        </div>
+
+        <button type="submit">Save Product</button>
+    </form>
+
+    <a th:href="@{/catalog}">← Back to Catalog</a>
+</div>
+
+</body>
+</html>

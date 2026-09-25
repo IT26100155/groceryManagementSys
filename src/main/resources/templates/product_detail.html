@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Details</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f8f9fa; }
+        .container { background: white; padding: 30px; border-radius: 8px; max-width: 700px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .gallery { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; }
+        .gallery img { width: 120px; height: 120px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc; }
+        .stock-indicator { display: inline-block; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
+        .in-stock { background-color: #d4edda; color: #155724; }
+        .out-of-stock { background-color: #f8d7da; color: #721c24; }
+        .price { font-size: 1.5em; color: #28a745; font-weight: bold; margin: 15px 0; }
+        a { text-decoration: none; color: #007bff; display: inline-block; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a th:href="@{/catalog}">← Back to Catalog</a>
+
+    <h1 th:text="${item.name}">Product Name</h1>
+    <p><strong>Brand / Supplier:</strong> <span th:text="${item.brandSupplier}">Supplier</span></p>
+    <p><strong>Category:</strong> <span th:text="${item.category != null ? item.category.name : 'Uncategorized'}">Category</span></p>
+
+    <!-- Image Gallery -->
+    <h3>Product Images</h3>
+    <div class="gallery">
+        <div th:each="img : ${item.images}">
+            <img th:src="${img.url}" alt="Item image"/>
+        </div>
+        <p th:if="${#lists.isEmpty(item.images)}">No images available for this product.</p>
+    </div>
+
+    <p class="price" th:text="'$' + ${#numbers.formatDecimal(item.price, 1, 2)}">$0.00</p>
+
+    <!-- Stock Level Indicator -->
+    <p>
+        <strong>Stock Status:</strong>
+        <span th:if="${item.availableStock > 0}" class="stock-indicator in-stock" th:text="${item.availableStock} + ' items available'">In Stock</span>
+        <span th:if="${item.availableStock <= 0}" class="stock-indicator out-of-stock">Out of Stock</span>
+    </p>
+
+    <h3>Description</h3>
+    <p th:text="${item.description}">Product description goes here.</p>
+</div>
+
+</body>
+</html>
