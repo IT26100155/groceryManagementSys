@@ -1,6 +1,6 @@
-package com.grocerymanagementsys.discount.repositories;
+package com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.repositories;
 
-import com.grocerymanagementsys.discount.entities.Discount;
+import com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.entities.Discount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

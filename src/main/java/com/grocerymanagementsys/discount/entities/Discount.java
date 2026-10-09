@@ -1,4 +1,4 @@
-package com.grocerymanagementsys.discount.entities;
+package com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.entities;
 
 import jakarta.persistence.*;
 import lombok.*;

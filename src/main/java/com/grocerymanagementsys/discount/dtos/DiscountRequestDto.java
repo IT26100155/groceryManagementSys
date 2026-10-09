@@ -1,4 +1,4 @@
-package com.grocerymanagementsys.discount.dtos;
+package com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.dtos;
 
 import jakarta.validation.constraints.*;
 
