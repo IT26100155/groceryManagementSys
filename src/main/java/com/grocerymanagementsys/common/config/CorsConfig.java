@@ -1,6 +1,5 @@
 package com.grocerymanagementsys.common.config;
 
-import org.jspecify.annotations.NullMarked;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -14,11 +13,10 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
 
             @Override
-            @NullMarked
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOrigins("http://localhost:63342") // your frontend dev URL
-                        .allowedMethods("GET", "POST", "PUT", "DELETE")
+                        .allowedOrigins("http://localhost:63342")
+                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE")
                         .allowCredentials(true);
             }
         };
