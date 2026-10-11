@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Grocery Inventory System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-box-seam me-2"></i>Grocery Inventory System</h2>
+        <div>
+            <a th:href="@{/api/inventory/add-perishable}" class="btn btn-primary me-1">+ Add Perishable Item</a>
+            <a th:href="@{/api/inventory/add-non-perishable}" class="btn btn-outline-primary me-1">+ Add Non-Perishable Item</a>
+            <a th:href="@{/api/inventory/audit-logs}" class="btn btn-secondary me-1">View Stock Logs</a>
+            <a th:href="@{/api/inventory/export-csv}" class="btn btn-success"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV</a>
+        </div>
+    </div>
+
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <form th:action="@{/api/inventory/items}" method="get" class="row g-2 mb-4">
+        <div class="col-md-5">
+            <input type="text" name="keyword" th:value="${keyword}" class="form-control" placeholder="Search by item name...">
+        </div>
+        <div class="col-md-4">
+            <select name="categoryId" class="form-select">
+                <option value="">All Categories</option>
+                <option th:each="cat : ${categories}"
+                        th:value="${cat.id}"
+                        th:text="${cat.name}"
+                        th:selected="${cat.id == selectedCategory}">
+                </option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-dark w-100">Search / Filter</button>
+        </div>
+    </form>
+
+    <div class="table-responsive bg-white rounded shadow-sm">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+            <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Storage Type</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th style="min-width: 320px;">Quick Stock Update</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${items}">
+                <td>
+                    <img th:src="${item.imageUrl != null && !item.imageUrl.empty ? item.imageUrl : 'https://via.placeholder.com/60'}"
+                         alt="Item" class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                </td>
+                <td>
+                    <strong th:text="${item.name}"></strong><br>
+                    <small class="text-muted" th:text="${item.brandSupplier}"></small>
+                </td>
+                <td>
+                        <span class="badge"
+                              th:classappend="${item.itemType == 'PERISHABLE' ? 'bg-info text-dark' : 'bg-secondary'}"
+                              th:text="${item.storageType}">
+                        </span>
+                </td>
+                <td th:text="'$' + ${#numbers.formatDecimal(item.price, 1, 2)}"></td>
+                <td>
+                        <span class="badge rounded-pill"
+                              th:classappend="${item.availableStock < 15 ? 'bg-danger' : 'bg-success'}"
+                              th:text="${item.availableStock}">
+                        </span>
+                </td>
+                <td>
+                    <form th:action="@{/api/inventory/quick-update}" method="post" class="d-flex align-items-center gap-1">
+                        <input type="hidden" name="itemId" th:value="${item.id}">
+                        <select name="updateType" class="form-select form-select-sm" style="width: 70px;">
+                            <option value="Increase">+</option>
+                            <option value="Decrease">-</option>
+                        </select>
+                        <input type="number" name="amount" class="form-control form-control-sm" placeholder="Qty" min="1" required style="width: 70px;">
+                        <input type="number" name="employeeId" class="form-control form-control-sm" placeholder="Emp ID" required style="width: 80px;">
+                        <select name="reason" class="form-select form-select-sm" style="width: 100px;">
+                            <option value="restock">Restock</option>
+                            <option value="sale">Sale</option>
+                            <option value="return">Return</option>
+                            <option value="correction">Correction</option>
+                        </select>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">Update</button>
+                    </form>
+                </td>
+                <td>
+                    <form th:action="@{/api/inventory/delete/{id}(id=${item.id})}" method="post" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(items)}">
+                <td colspan="7" class="text-center py-4 text-muted">No items found in inventory. Add items manually using the buttons above.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+
