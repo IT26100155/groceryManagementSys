@@ -13,7 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.io.IOException;
 
 @Controller
-@RequestMapping("/inventory")
+@RequestMapping("/api/inventory")
 @RequiredArgsConstructor
 public class InventoryController {
 
@@ -24,7 +24,6 @@ public class InventoryController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
             Model model) {
-
         model.addAttribute("items", inventoryService.getAllItems(keyword, categoryId));
         model.addAttribute("categories", inventoryService.getAllCategories());
         model.addAttribute("selectedCategory", categoryId);
@@ -47,7 +46,7 @@ public class InventoryController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error adding item: " + e.getMessage());
         }
-        return "redirect:/inventory/items";
+        return "redirect:/api/inventory/items";
     }
 
     @GetMapping("/add-non-perishable")
@@ -65,7 +64,7 @@ public class InventoryController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error adding item: " + e.getMessage());
         }
-        return "redirect:/inventory/items";
+        return "redirect:/api/inventory/items";
     }
 
     @PostMapping("/quick-update")
@@ -76,7 +75,7 @@ public class InventoryController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Update failed: " + e.getMessage());
         }
-        return "redirect:/inventory/items";
+        return "redirect:/api/inventory/items";
     }
 
     @PostMapping("/delete/{id}")
@@ -87,7 +86,7 @@ public class InventoryController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Failed to delete item: " + e.getMessage());
         }
-        return "redirect:/inventory/items";
+        return "redirect:/api/inventory/items";
     }
 
     @GetMapping("/audit-logs")
@@ -103,3 +102,4 @@ public class InventoryController {
         inventoryService.writeItemsToCsv(response.getWriter());
     }
 }
+
