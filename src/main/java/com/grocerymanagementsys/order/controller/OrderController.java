@@ -27,6 +27,12 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getById(id));
     }
 
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<Void> cancelOrder(@PathVariable Integer id) {
+        orderService.cancelOrderById(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/customers/{customerId}")
     public ResponseEntity<List<OrderResponseDto>> getByCustomer(@PathVariable Integer customerId) {
         return ResponseEntity.ok(orderService.getByCustomer(customerId));

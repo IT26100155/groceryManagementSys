@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -61,10 +60,19 @@ public class OrderService {
         return toResponse(order);
     }
 
+    public OrderResponseDto cancelOrderById(Integer id) {
+        Order order = findOrderOrThrow(id);
+        order.setStatus(OrderStatus.CANCELLED);
+        return toResponse(orderRepository.save(order));
+    }
+
     public OrderResponseDto getById(Integer id) {
-        Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order", id));
+        Order order = findOrderOrThrow(id);
         return toResponse(order);
+    }
+
+    private Order findOrderOrThrow(Integer id) {
+        return orderRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Order", id));
     }
 
     public List<OrderResponseDto> getByCustomer(Integer customerId) {

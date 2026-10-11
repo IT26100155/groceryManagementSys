@@ -9,10 +9,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 
-// One row per item inside an order. unitPrice is a SNAPSHOT of Item.price at the
-// time of order - never re-read from Item later, so historical orders stay correct
-// even if the item's price changes afterward. itemId / quantity are inherited
-// from ItemUnit.
 @Entity
 @Table(name = "order_units")
 @Getter
