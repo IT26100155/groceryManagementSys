@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log in</title>
+<link rel="stylesheet" href="auth.css">
+<script>if (localStorage.getItem("gms_customer")) location.replace("customer/customer.html");</script>
+</head>
+<body>
+<input id="base" type="hidden">
+<div class="split">
+  <div class="left"><img src="login-image.svg" alt=""></div>
+  <div class="right">
+    <form class="card" onsubmit="return doLogin(event)">
+      <h1>Welcome back</h1>
+      <p class="sub">Log in to your account to start shopping.</p>
+      <label for="email">Email</label>
+      <input id="email" type="email" required>
+      <label for="pass">Password</label>
+      <input id="pass" type="password" required>
+      <div class="error" id="err"></div>
+      <button type="submit">Log in</button>
+      <div class="alt">Don't have an account? <a href="customer/signup.html">Sign up</a></div>
+    </form>
+  </div>
+</div>
+<script src="common.js"></script>
+<script>
+async function doLogin(e) {
+  e.preventDefault();
+  $('err').textContent = '';
+  const r = await authPost('/api/customers/login', { email: v('email'), password: $('pass').value });
+  if (r.ok && r.data && r.data.id) {
+    localStorage.setItem('gms_customer', JSON.stringify(r.data));
+    location.replace('customer/customer.html');
+  } else {
+    $('err').textContent = errorMessage(r);
+  }
+  return false;
+}
+</script>
+</body>
+</html>
