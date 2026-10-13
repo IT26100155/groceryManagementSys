@@ -102,4 +102,3 @@ public class InventoryController {
         inventoryService.writeItemsToCsv(response.getWriter());
     }
 }
-
