@@ -15,6 +15,7 @@ public record StaffOrderDto(
         BigDecimal total,
         OrderStatus status,
         List<Line> items
-) {
+)
+{
     public record Line(String itemName, Integer quantity, BigDecimal unitPrice) { }
 }
