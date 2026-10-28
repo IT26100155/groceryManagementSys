@@ -6,10 +6,11 @@ import com.grocerymanagementsys.address.entities.Address;
 import com.grocerymanagementsys.address.exceptions.AddressInUseException;
 import com.grocerymanagementsys.address.repositories.AddressRepository;
 import com.grocerymanagementsys.common.exceptions.ResourceNotFoundException;
-import com.grocerymanagementsys.customer.repositories.CustomerRepository;
-import com.grocerymanagementsys.order.repositories.OrderRepository;
+import com.grocerymanagementsys.customer.entities.Customer;
+import com.grocerymanagementsys.customer.services.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,44 +18,51 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AddressService {
     private final AddressRepository addressRepository;
-    private final CustomerRepository customerRepository;
-    private final OrderRepository orderRepository;
+    private final CustomerService customerService;
 
+    @Transactional
     public AddressResponseDto create(Integer customerId, AddressRequestDto dto) {
-        if (!customerRepository.existsById(customerId)) {
-            throw new ResourceNotFoundException("Customer", customerId);
-        }
+        Customer customer = customerService.findCustomerOrThrow(customerId);
 
         Address address = new Address();
-        address.setCustomerId(customerId);
+        address.setCustomer(customer);
         address.setAddressBody(dto.addressBody());
         return toResponse(addressRepository.save(address));
     }
 
+    @Transactional(readOnly = true)
     public List<AddressResponseDto> getAll(Integer customerId) {
-        return addressRepository.findByCustomerId(customerId).stream().map(this::toResponse).toList();
+        return customerService.findCustomerOrThrow(customerId).getAddresses().stream()
+                .map(this::toResponse)
+                .toList();
     }
 
+    @Transactional
     public AddressResponseDto update(Integer customerId, Integer addressId, AddressRequestDto dto) {
-        Address address = findOwnedAddressOrThrow(customerId, addressId);
+        Address address = findOwnedAddressOrThrow(customerService.findCustomerOrThrow(customerId), addressId);
         address.setAddressBody(dto.addressBody());
-        return toResponse(addressRepository.save(address));
+        return toResponse(address);
     }
 
+    @Transactional
     public void delete(Integer customerId, Integer addressId) {
-        Address address = findOwnedAddressOrThrow(customerId, addressId);
-        if (orderRepository.existsByAddressId(addressId)) {
+        Customer customer = customerService.findCustomerOrThrow(customerId);
+        Address address = findOwnedAddressOrThrow(customer, addressId);
+
+        if (!address.getOrders().isEmpty()) {
             throw new AddressInUseException(addressId);
         }
-        addressRepository.delete(address);
+        customer.getAddresses().remove(address);
     }
 
-    private Address findOwnedAddressOrThrow(Integer customerId, Integer addressId) {
-        return addressRepository.findByIdAndCustomerId(addressId, customerId)
+    private Address findOwnedAddressOrThrow(Customer customer, Integer addressId) {
+        return customer.getAddresses().stream()
+                .filter(a -> a.getId().equals(addressId))
+                .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Address", addressId));
     }
 
     private AddressResponseDto toResponse(Address address) {
-        return new AddressResponseDto(address.getId(), address.getCustomerId(), address.getAddressBody());
+        return new AddressResponseDto(address.getId(), address.getCustomer().getId(), address.getAddressBody());
     }
 }
