@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Staff log in</title>
+<link rel="stylesheet" href="../auth.css">
+<script>if (localStorage.getItem("gms_employee")) location.replace("staff.html");</script>
+</head>
+<body>
+<input id="base" type="hidden">
+<div class="split">
+  <div class="left"><img src="../login-image.svg" alt=""></div>
+  <div class="right">
+    <div class="card">
+      <form id="login_form" onsubmit="return doLogin(event)">
+        <h1>Staff log in</h1>
+        <p class="sub">Authorised personnel only.</p>
+        <label for="email">Email</label>
+        <input id="email" type="email" required>
+        <label for="pass">Password</label>
+        <input id="pass" type="password" required>
+        <div class="error" id="err"></div>
+        <button type="submit">Log in</button>
+        <div class="alt">New staff member? <a href="#" onclick="toggle(true); return false;">Create a staff account</a></div>
+      </form>
+
+      <form id="signup_form" style="display:none" onsubmit="return doSignup(event)">
+        <h1>Create staff account</h1>
+        <p class="sub">Authorised personnel only.</p>
+        <label for="s_name">Full name</label>
+        <input id="s_name" required>
+        <label for="s_email">Email</label>
+        <input id="s_email" type="email" required>
+        <label for="s_role">Role</label>
+        <select id="s_role"><option>STAFF</option><option>ADMIN</option></select>
+        <label for="s_pass">Password (at least 8 characters)</label>
+        <input id="s_pass" type="password" minlength="8" required>
+        <div class="error" id="s_err"></div>
+        <button type="submit">Create account</button>
+        <div class="alt"><a href="#" onclick="toggle(false); return false;">Back to log in</a></div>
+      </form>
+    </div>
+  </div>
+</div>
+<script src="../common.js"></script>
+<script>
+function toggle(showSignup) {
+  $('login_form').style.display = showSignup ? 'none' : '';
+  $('signup_form').style.display = showSignup ? '' : 'none';
+}
+function finish(r, errId) {
+  if (r.ok && r.data && r.data.id) {
+    localStorage.setItem('gms_employee', JSON.stringify(r.data));
+    location.replace('staff.html');
+  } else {
+    $(errId).textContent = errorMessage(r);
+  }
+}
+async function doLogin(e) {
+  e.preventDefault();
+  $('err').textContent = '';
+  finish(await authPost('/api/employees/login', { email: v('email'), password: $('pass').value }), 'err');
+  return false;
+}
+async function doSignup(e) {
+  e.preventDefault();
+  $('s_err').textContent = '';
+  finish(await authPost('/api/employees/signup', {
+    fullName: v('s_name'), email: v('s_email'), role: v('s_role'), password: $('s_pass').value
+  }), 's_err');
+  return false;
+}
+</script>
+</body>
+</html>
