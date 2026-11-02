@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments :: head('Payments')}"></head>
+<body class="bg-light">
+<nav th:replace="~{staff/fragments :: navbar('payments')}"></nav>
+<div th:replace="~{staff/fragments :: alerts}"></div>
+
+<div class="container my-4">
+    <h2 class="fw-bold mb-1"><i class="bi bi-credit-card me-2"></i>Pending payments</h2>
+    <p class="text-muted">Payments that customers have started and that still wait for confirmation (placeholder for a real payment provider).</p>
+
+    <div class="table-responsive bg-white rounded shadow-sm">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+            <tr>
+                <th>Payment</th>
+                <th>Order</th>
+                <th>Method</th>
+                <th>Started</th>
+                <th>Expires</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${pending}">
+                <td th:text="'#' + ${p.id()}"></td>
+                <td th:text="'#' + ${p.orderId()}"></td>
+                <td th:text="${p.type()}"></td>
+                <td th:text="${#temporals.format(p.date(), 'yyyy-MM-dd HH:mm')}"></td>
+                <td th:text="${#temporals.format(p.expiryTime(), 'yyyy-MM-dd HH:mm')}"></td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <form th:action="@{/staff/payments/{id}/confirm(id=${p.id()})}" method="post">
+                            <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                            <button type="submit" class="btn btn-success btn-sm">Confirm</button>
+                        </form>
+                        <form th:action="@{/staff/payments/{id}/cancel(id=${p.id()})}" method="post"
+                              onsubmit="return confirm('Cancel this payment?');">
+                            <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Cancel</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(pending)}">
+                <td colspan="6" class="text-center py-4 text-muted">No pending payments.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script th:replace="~{staff/fragments :: scripts}"></script>
+</body>
+</html>
