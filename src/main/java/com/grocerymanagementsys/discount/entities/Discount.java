@@ -1,16 +1,19 @@
-package com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.entities;
+package com.grocerymanagementsys.discount.entities;
 
+import com.grocerymanagementsys.employee.entities.Employee;
+import com.grocerymanagementsys.inventory.entities.Item;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "discounts")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Discount {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,14 +35,14 @@ public class Discount {
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
-    @Column(name = "employee_id", nullable = false)
-    private Integer employeeId;
-
     @Column(name = "is_store_wide", nullable = false)
     private boolean storeWide;
 
-    // NOTE: which items a non-store-wide discount applies to is a many-to-many
-    // relationship (the "discountedItems" join table from the schema) - left out
-    // here for now. Add a DiscountedItem join entity + repository when item-scoped
-    // discounts are needed; for now storeWide=true is the only supported case.
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "discounted_items", joinColumns = @JoinColumn(name = "discount_id"), inverseJoinColumns = @JoinColumn(name = "item_id"))
+    private Set<Item> items = new HashSet<>();
 }

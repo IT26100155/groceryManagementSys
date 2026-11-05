@@ -1,4 +1,4 @@
-package com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.dtos;
+package com.grocerymanagementsys.discount.dtos;
 
 import jakarta.validation.constraints.*;
 
@@ -13,5 +13,5 @@ public record DiscountRequestDto(
         @NotNull LocalDate expireDate,
         @NotNull Integer employeeId,
         @NotNull Boolean storeWide,
-        List<@NotNull Integer> itemIds    // required (non-empty) when storeWide is false; ignored when true
+        List<@NotNull Long> itemIds
 ) { }

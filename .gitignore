@@ -34,3 +34,6 @@ build/
 
 ### Direct paths ###
 src/main/resources/application.properties
+/.postman
+/postman
+uploads/
