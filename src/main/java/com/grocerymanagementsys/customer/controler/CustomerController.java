@@ -1,7 +1,9 @@
 package com.grocerymanagementsys.customer.controler;
 
+import com.grocerymanagementsys.common.dtos.PasswordChangeDto;
 import com.grocerymanagementsys.customer.dtos.CustomerRequestDto;
 import com.grocerymanagementsys.customer.dtos.CustomerResponseDto;
+import com.grocerymanagementsys.customer.dtos.CustomerUpdateDto;
 import com.grocerymanagementsys.customer.dtos.LoginRequestDto;
 import com.grocerymanagementsys.customer.services.CustomerService;
 import jakarta.validation.Valid;
@@ -27,5 +29,16 @@ public class CustomerController {
     public ResponseEntity<CustomerResponseDto> login(@RequestBody @Valid LoginRequestDto request) {
         CustomerResponseDto customer = customerService.login(request.email(), request.password());
         return ResponseEntity.ok(customer);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CustomerResponseDto> updateProfile(@PathVariable Integer id, @RequestBody @Valid CustomerUpdateDto request) {
+        return ResponseEntity.ok(customerService.updateProfile(id, request));
+    }
+
+    @PutMapping("/{id}/password")
+    public ResponseEntity<Void> changePassword(@PathVariable Integer id, @RequestBody @Valid PasswordChangeDto request) {
+        customerService.changePassword(id, request);
+        return ResponseEntity.noContent().build();
     }
 }
