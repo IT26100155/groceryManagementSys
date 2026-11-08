@@ -21,8 +21,9 @@ public class OrderUnit extends ItemUnit {
     @Setter(AccessLevel.NONE)
     private Integer id;
 
-    @Column(name = "order_id", nullable = false)
-    private Integer orderId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "order_id", nullable = false)
+    private Order order;
 
     @Column(name = "unit_price", nullable = false)
     private BigDecimal unitPrice;

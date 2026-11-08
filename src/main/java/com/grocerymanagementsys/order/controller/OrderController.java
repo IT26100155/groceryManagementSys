@@ -3,6 +3,7 @@ package com.grocerymanagementsys.order.controller;
 import com.grocerymanagementsys.order.dtos.OrderResponseDto;
 import com.grocerymanagementsys.order.dtos.PlaceOrderDto;
 import com.grocerymanagementsys.order.services.OrderService;
+import com.grocerymanagementsys.payment.enums.PaymentState;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,5 +37,10 @@ public class OrderController {
     @GetMapping("/customers/{customerId}")
     public ResponseEntity<List<OrderResponseDto>> getByCustomer(@PathVariable Integer customerId) {
         return ResponseEntity.ok(orderService.getByCustomer(customerId));
+    }
+
+    @GetMapping("/payments/{state}")
+    public ResponseEntity<List<OrderResponseDto>> getByPaymentState(@PathVariable PaymentState state) {
+        return ResponseEntity.ok(orderService.getByPaymentState(state));
     }
 }
