@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments :: head('Discounts')}"></head>
+<body class="bg-light">
+<nav th:replace="~{staff/fragments :: navbar('discounts')}"></nav>
+<div th:replace="~{staff/fragments :: alerts}"></div>
+
+<div class="container my-4">
+    <h2 class="fw-bold mb-3"><i class="bi bi-percent me-2"></i>Discounts</h2>
+
+    <div class="table-responsive bg-white rounded shadow-sm mb-4">
+        <table class="table align-middle mb-0">
+            <thead class="table-dark">
+            <tr>
+                <th>Discount</th>
+                <th>Min price</th>
+                <th>Starts</th>
+                <th>Expires</th>
+                <th>Applies to</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="row : ${rows}">
+                <td><span class="badge bg-success fs-6" th:text="${row.discount().percentage()} + '% off'"></span></td>
+                <td th:text="${row.discount().minPrice() != null ? '$' + #numbers.formatDecimal(row.discount().minPrice(), 1, 2) : '-'}"></td>
+                <td th:text="${row.discount().startDate()}"></td>
+                <td th:text="${row.discount().expireDate()}"></td>
+                <td style="max-width: 320px;">
+                    <span th:text="${row.scope()}"></span>
+                    <details th:if="${staffUser.admin and !row.discount().storeWide()}" class="mt-1">
+                        <summary class="small text-primary">Edit items</summary>
+                        <form th:action="@{/staff/discounts/{id}/items(id=${row.discount().id()})}" method="post" class="mt-2">
+                            <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                            <select name="itemIds" class="form-select form-select-sm" multiple size="6">
+                                <option th:each="item : ${items}" th:value="${item.id}"
+                                        th:text="${item.name}"
+                                        th:selected="${row.discount().itemIds().contains(item.id)}"></option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm mt-2">Save items</button>
+                        </form>
+                    </details>
+                </td>
+                <td>
+                    <span class="badge" th:classappend="${row.upcoming()} ? 'bg-info text-dark' : 'bg-success'"
+                          th:text="${row.upcoming()} ? 'Upcoming' : 'Running'"></span>
+                </td>
+                <td>
+                    <form th:action="@{/staff/discounts/{id}/deactivate(id=${row.discount().id()})}" method="post"
+                          onsubmit="return confirm('Deactivate this discount?');">
+                        <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Deactivate</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(rows)}">
+                <td colspan="7" class="text-center py-4 text-muted">No active discounts.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card shadow-sm" th:if="${staffUser.admin}">
+        <div class="card-header bg-primary text-white"><h5 class="mb-0">Create discount</h5></div>
+        <div class="card-body">
+            <form th:action="@{/staff/discounts}" method="post">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Percentage (1-100)</label>
+                        <input type="number" name="percentage" min="1" max="100" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Minimum price (optional)</label>
+                        <input type="number" name="minPrice" min="0" step="0.01" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Starts</label>
+                        <input type="date" name="startDate" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Expires</label>
+                        <input type="date" name="expireDate" class="form-control" required>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="storeWide" id="storeWide">
+                            <label class="form-check-label" for="storeWide">Store-wide (applies to every item)</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Items <small class="text-muted">(ignored when store-wide; Ctrl/Cmd+click to pick several)</small></label>
+                        <select name="itemIds" class="form-select" multiple size="8">
+                            <option th:each="item : ${items}" th:value="${item.id}"
+                                    th:text="${item.name} + (${item.brandSupplier} != null ? ' - ' + ${item.brandSupplier} : '')"></option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Create discount</button>
+            </form>
+        </div>
+    </div>
+</div>
+<script th:replace="~{staff/fragments :: scripts}"></script>
+</body>
+</html>

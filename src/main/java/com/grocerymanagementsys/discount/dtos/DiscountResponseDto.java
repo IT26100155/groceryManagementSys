@@ -1,4 +1,4 @@
-package com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.dtos;
+package com.grocerymanagementsys.discount.dtos;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,5 +13,5 @@ public record DiscountResponseDto(
         boolean active,
         Integer employeeId,
         boolean storeWide,
-        List<Integer> itemIds     // empty for store-wide discounts
+        List<Long> itemIds     // empty for store-wide discounts
 ) { }

@@ -1,79 +1,83 @@
 package com.grocerymanagementsys.discount.services;
 
-
 import com.grocerymanagementsys.common.exceptions.ResourceNotFoundException;
-import com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.dtos.DiscountRequestDto;
-import com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.dtos.DiscountResponseDto;
-import com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.entities.Discount;
-import com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.entities.DiscountedItem;
-import com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.repositories.DiscountRepository;
-import com.grocerymanagementsys.src.main.java.com.grocerymanagementsys.discount.repositories.DiscountedItemRepository;
+import com.grocerymanagementsys.discount.dtos.DiscountRequestDto;
+import com.grocerymanagementsys.discount.dtos.DiscountResponseDto;
+import com.grocerymanagementsys.discount.entities.Discount;
+import com.grocerymanagementsys.discount.repositories.DiscountRepository;
+import com.grocerymanagementsys.employee.entities.Employee;
+import com.grocerymanagementsys.employee.repositories.EmployeeRepository;
+import com.grocerymanagementsys.inventory.entities.Item;
 import com.grocerymanagementsys.inventory.repositories.ItemRepository;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DiscountService {
     private final DiscountRepository discountRepository;
-    private final DiscountedItemRepository discountedItemRepository;
     private final ItemRepository itemRepository;
+    private final EmployeeRepository employeeRepository;
 
     @Transactional
     public DiscountResponseDto create(DiscountRequestDto dto) {
-        if (!dto.startDate().isBefore(dto.expireDate())) {
-            throw new ValidationException("startDate must be before expireDate");
+        if (dto.startDate().isAfter(dto.expireDate())) {
+            throw new ValidationException("startDate cannot be after expireDate");
         }
         boolean hasItems = dto.itemIds() != null && !dto.itemIds().isEmpty();
         if (!dto.storeWide() && !hasItems) {
             throw new ValidationException("itemIds is required when the discount is not store-wide");
         }
-        if (hasItems) {
-            validateItemsExist(dto.itemIds());
-        }
+
+        Employee employee = employeeRepository.findById(dto.employeeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", dto.employeeId()));
 
         Discount discount = new Discount();
         discount.setPercentage(dto.percentage());
         discount.setMinPrice(dto.minPrice());
         discount.setStartDate(dto.startDate());
         discount.setExpireDate(dto.expireDate());
-        discount.setEmployeeId(dto.employeeId());
+        discount.setEmployee(employee);
         discount.setStoreWide(dto.storeWide());
         discount.setActive(true);
-        discount = discountRepository.save(discount);
 
-        // A store-wide discount applies to everything, so it never gets item rows.
         if (!dto.storeWide()) {
-            saveItems(discount.getId(), dto.itemIds());
+            discount.setItems(loadItems(dto.itemIds()));
         }
-        return toResponse(discount);
+        return toResponse(discountRepository.save(discount));
     }
 
-    // Replaces the set of items a discount applies to.
     @Transactional
-    public DiscountResponseDto updateItems(Integer discountId, List<Integer> itemIds) {
+    public DiscountResponseDto updateItems(Integer discountId, List<Long> itemIds) {
         Discount discount = findDiscountOrThrow(discountId);
         if (discount.isStoreWide()) {
             throw new ValidationException("A store-wide discount applies to every item and has no item list");
         }
-        validateItemsExist(itemIds);
 
-        discountedItemRepository.deleteByDiscountId(discountId);
-        discountedItemRepository.flush(); // delete must reach the DB before re-inserting, or the unique constraint can trip
-        saveItems(discountId, itemIds);
+        Set<Item> items = loadItems(itemIds);
+        discount.getItems().clear();
+        discount.getItems().addAll(items);
         return toResponse(discount);
     }
 
+    @Transactional(readOnly = true)
     public List<DiscountResponseDto> getActive() {
+        LocalDate today = LocalDate.now();
         return discountRepository.findByActiveTrue().stream()
+                .filter(d -> !d.getExpireDate().isBefore(today))
                 .map(this::toResponse)
                 .toList();
     }
 
+    @Transactional
     public DiscountResponseDto deactivate(Integer id) {
         Discount discount = findDiscountOrThrow(id);
         discount.setActive(false);
@@ -85,31 +89,33 @@ public class DiscountService {
                 .orElseThrow(() -> new ResourceNotFoundException("Discount", id));
     }
 
-    private void validateItemsExist(List<Integer> itemIds) {
-        for (Integer itemId : itemIds) {
-            if (!itemRepository.existsById(itemId)) {
-                throw new ResourceNotFoundException("Item", itemId);
-            }
+    private Set<Item> loadItems(List<Long> itemIds) {
+        Set<Long> wanted = new HashSet<>(itemIds);
+        List<Item> found = itemRepository.findAllById(wanted);
+        if (found.size() != wanted.size()) {
+            Set<Long> foundIds = found.stream().map(Item::getId).collect(Collectors.toSet());
+            Long missing = wanted.stream().filter(id -> !foundIds.contains(id)).findFirst().orElseThrow();
+            throw new ResourceNotFoundException("Item", missing);
         }
-    }
-
-    private void saveItems(Integer discountId, List<Integer> itemIds) {
-        for (Integer itemId : itemIds.stream().distinct().toList()) {
-            DiscountedItem link = new DiscountedItem();
-            link.setDiscountId(discountId);
-            link.setItemId(itemId);
-            discountedItemRepository.save(link);
-        }
+        return new HashSet<>(found);
     }
 
     private DiscountResponseDto toResponse(Discount d) {
-        List<Integer> itemIds = discountedItemRepository.findByDiscountId(d.getId()).stream()
-                .map(DiscountedItem::getItemId)
+        List<Long> itemIds = d.getItems().stream()
+                .map(Item::getId)
+                .sorted()
                 .toList();
 
         return new DiscountResponseDto(
-                d.getId(), d.getPercentage(), d.getMinPrice(), d.getStartDate(),
-                d.getExpireDate(), d.isActive(), d.getEmployeeId(), d.isStoreWide(), itemIds
+                d.getId(),
+                d.getPercentage(),
+                d.getMinPrice(),
+                d.getStartDate(),
+                d.getExpireDate(),
+                d.isActive(),
+                d.getEmployee().getId(),
+                d.isStoreWide(),
+                itemIds
         );
     }
 }
