@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments :: head('Staff')}"></head>
+<body class="bg-light">
+<nav th:replace="~{staff/fragments :: navbar('team')}"></nav>
+<div th:replace="~{staff/fragments :: alerts}"></div>
+
+<div class="container my-4" style="max-width: 900px;">
+    <h2 class="fw-bold mb-1"><i class="bi bi-people me-2"></i>Staff accounts</h2>
+    <p class="text-muted">Everyone who can sign in to the staff portal. New accounts are created from the staff sign-up page.</p>
+
+    <div class="table-responsive bg-white rounded shadow-sm">
+        <table class="table align-middle mb-0">
+            <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th style="width: 120px;">Role</th>
+                <th style="width: 120px;"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="emp : ${employees}">
+                <td>
+                    <span th:text="${emp.fullName}"></span>
+                    <span class="badge bg-info text-dark ms-1" th:if="${emp.id == staffUser.id}">You</span>
+                </td>
+                <td th:text="${emp.email}"></td>
+                <td><span class="badge rounded-pill" th:classappend="${emp.role.name() == 'ADMIN'} ? 'bg-danger' : 'bg-secondary'" th:text="${emp.role}"></span></td>
+                <td class="text-end">
+                    <form th:if="${emp.id != staffUser.id}" th:action="@{/staff/team/{id}/delete(id=${emp.id})}" method="post" class="d-inline"
+                          th:data-name="${emp.fullName}"
+                          onsubmit="return confirm('Delete the account of ' + this.dataset.name + '? They will no longer be able to sign in.');">
+                        <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                    </form>
+                    <a th:if="${emp.id == staffUser.id}" th:href="@{/staff/account}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(employees)}"><td colspan="4" class="text-center text-muted py-3">No accounts.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script th:replace="~{staff/fragments :: scripts}"></script>
+</body>
+</html>

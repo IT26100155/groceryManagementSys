@@ -39,6 +39,7 @@ a { color: #2e7d32; }
 .card.out { opacity: .65; }
 .card .name { font-weight: bold; font-size: 16px; }
 .card .brand { color: #666; font-size: 13px; }
+.card .cats { font-size: 12px; color: #2e7d32; }
 .card .desc { font-size: 13px; color: #444; flex: 1; }
 .card .price { font-size: 18px; font-weight: bold; }
 .card .price s { color: #888; font-weight: normal; font-size: 14px; margin-right: 6px; }
@@ -62,3 +63,52 @@ a { color: #2e7d32; }
   .store { flex-direction: column; }
   .filters { width: 100%; }
 }
+
+/* panel layout with side menu (cart, account) */
+.dash { display: flex; gap: 24px; max-width: 1100px; margin: 0 auto; padding: 24px 24px 40px; align-items: flex-start; }
+.sidemenu { width: 230px; flex: none; background: #fff; border-radius: 8px; padding: 12px; position: sticky; top: 16px; }
+.side-user { display: flex; align-items: center; gap: 10px; padding: 8px 8px 14px; margin-bottom: 8px; border-bottom: 1px solid #e4e6e4; }
+.avatar { width: 38px; height: 38px; border-radius: 50%; background: #2e7d32; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; flex: none; }
+.side-name { font-weight: bold; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-sub { font-size: 12px; color: #666; }
+.sidemenu nav { display: flex; flex-direction: column; gap: 2px; }
+.sidemenu nav a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: 6px; color: #333; text-decoration: none; font-size: 15px; border-left: 3px solid transparent; }
+.sidemenu nav a:hover { background: #f0f2f0; }
+.sidemenu nav a.active { background: #e3f4e4; color: #1b5e20; font-weight: bold; border-left-color: #2e7d32; }
+.sidemenu nav a:focus-visible { outline: 2px solid #2e7d32; outline-offset: 1px; }
+.pill { background: #2e7d32; color: #fff; border-radius: 10px; font-size: 11px; padding: 1px 7px; min-width: 20px; text-align: center; font-weight: normal; }
+.sidemenu .back { display: block; margin-top: 10px; padding: 10px 12px 4px; border-top: 1px solid #e4e6e4; font-size: 14px; text-decoration: none; }
+.dash-main { flex: 1; min-width: 0; }
+.dash-main .panel { margin-top: 0; }
+.tab-panel[hidden] { display: none; }
+.panel-head { margin: 0 0 4px; }
+.panel-sub { margin: 0 0 16px; color: #666; font-size: 14px; }
+.profile-list { display: grid; grid-template-columns: max-content 1fr; gap: 10px 24px; margin: 0; font-size: 15px; }
+.profile-list dt { color: #666; }
+.profile-list dd { margin: 0; font-weight: bold; }
+.form-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.form-row label { font-size: 14px; color: #555; min-width: 90px; }
+.form-row input, .form-row select { flex: 1; min-width: 200px; max-width: 420px; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.panel h3 { margin: 24px 0 8px; font-size: 16px; }
+.panel .note { color: #666; font-size: 13px; margin-bottom: 0; }
+.panel table { display: block; overflow-x: auto; }
+
+@media (max-width: 760px) {
+  .dash { flex-direction: column; padding: 16px; gap: 16px; }
+  .sidemenu { width: 100%; position: static; }
+  .sidemenu nav { flex-direction: row; overflow-x: auto; }
+  .sidemenu nav a { white-space: nowrap; border-left: 0; border-bottom: 3px solid transparent; }
+  .sidemenu nav a.active { border-bottom-color: #2e7d32; }
+}
+
+.card .thumb { display: block; width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; background: #eef0ee; }
+
+.order-detail { margin: 4px 0 16px; }
+.panel .detail-table { display: table; width: 100%; border-collapse: collapse; background: #fff; }
+.detail-table th, .detail-table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #e4e6e4; vertical-align: top; }
+.detail-table thead th { background: #f0f2f0; font-size: 13px; color: #555; }
+.detail-table .item-name { font-weight: bold; }
+.detail-table .item-supplier { font-size: 12px; color: #666; }
+.detail-table tfoot td { font-weight: bold; border-top: 2px solid #2e7d32; border-bottom: 0; background: #f7fbf7; }
+.detail-table tfoot td:first-child { text-align: right; }

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments :: head('Orders')}"></head>
+<body class="bg-light">
+<nav th:replace="~{staff/fragments :: navbar('orders')}"></nav>
+<div th:replace="~{staff/fragments :: alerts}"></div>
+
+<div class="container my-4">
+    <h2 class="fw-bold mb-1"><i class="bi bi-box-seam me-2"></i>Paid orders</h2>
+    <p class="text-muted">Orders whose payment has been verified. Update where each order is in the delivery process.</p>
+
+    <div class="mb-3 d-flex flex-wrap gap-2">
+        <a th:href="@{/staff/orders}" class="btn btn-sm" th:classappend="${filter == null} ? 'btn-dark' : 'btn-outline-dark'">All</a>
+        <a th:each="f : ${filters}" th:href="@{/staff/orders(status=${f})}" th:text="${f}"
+           class="btn btn-sm" th:classappend="${filter == f} ? 'btn-dark' : 'btn-outline-dark'"></a>
+    </div>
+
+    <div class="table-responsive bg-white rounded shadow-sm">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+            <tr>
+                <th>Order</th>
+                <th>Customer</th>
+                <th>Deliver to</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th style="min-width: 230px;">Change status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="o : ${orders}">
+                <td>
+                    <strong th:text="'#' + ${o.id()}"></strong><br>
+                    <small class="text-muted" th:text="${#temporals.format(o.date(), 'yyyy-MM-dd HH:mm')}"></small>
+                </td>
+                <td>
+                    <span th:text="${o.customerName()}"></span><br>
+                    <small class="text-muted" th:text="${o.customerEmail()}"></small>
+                </td>
+                <td th:text="${o.address() != null ? o.address() : '(address removed)'}"></td>
+                <td>
+                    <div th:each="line : ${o.items()}" class="small" th:text="${line.itemName()} + ' : ' + ${line.unitPrice()} + ' x ' + ${line.quantity()}"></div>
+                </td>
+                <td th:text="${o.total()}"></td>
+                <td>
+                    <span class="badge rounded-pill"
+                          th:classappend="${o.status().name() == 'DELIVERED'} ? 'bg-success' : (${o.status().name() == 'SHIPPED'} ? 'bg-primary' : (${o.status().name() == 'CANCELLED'} ? 'bg-danger' : 'bg-secondary'))"
+                          th:text="${o.status()}"></span>
+                </td>
+                <td>
+                    <form th:if="${o.status().name() != 'CANCELLED'}" th:action="@{/staff/orders/{id}/status(id=${o.id()})}" method="post" class="d-flex gap-2">
+                        <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                        <input type="hidden" name="filter" th:value="${filter}" th:if="${filter != null}">
+                        <select name="status" class="form-select form-select-sm" aria-label="New status">
+                            <option th:each="s : ${editableStatuses}" th:value="${s}" th:text="${s}" th:selected="${s == o.status()}"></option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                    </form>
+                    <span th:if="${o.status().name() == 'CANCELLED'}" class="text-muted small">Cancelled, can't be changed</span>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(orders)}">
+                <td colspan="7" class="text-center py-4 text-muted">No orders with a verified payment.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script th:replace="~{staff/fragments :: scripts}"></script>
+</body>
+</html>
