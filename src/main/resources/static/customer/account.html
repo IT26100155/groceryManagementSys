@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My account</title>
+<link rel="stylesheet" href="../store.css">
+<script>if (!localStorage.getItem("gms_customer")) location.replace("../index.html");</script>
+</head>
+<body>
+<input id="base" type="hidden">
+<div id="nav"></div>
+<div id="msg" class="msg"></div>
+
+<div class="dash">
+  <aside class="sidemenu">
+    <div class="side-user">
+      <div class="avatar" id="side_avatar"></div>
+      <div>
+        <div class="side-name" id="side_name"></div>
+        <div class="side-sub">Customer</div>
+      </div>
+    </div>
+    <nav>
+      <a href="#profile" data-panel="profile">Profile</a>
+      <a href="#password" data-panel="password">Password</a>
+      <a href="#addresses" data-panel="addresses">Addresses <span class="pill" id="side_addr_count">0</span></a>
+      <a href="#orders" data-panel="orders">My orders <span class="pill" id="side_order_count">0</span></a>
+    </nav>
+    <a class="back" href="customer.html">&larr; Back to the store</a>
+  </aside>
+
+  <div class="dash-main">
+    <section class="panel tab-panel" id="panel-profile">
+      <h2 class="panel-head">Profile</h2>
+      <p class="panel-sub">Update the details we have on file for you.</p>
+      <div class="form-row">
+        <label for="pf_name">Full name</label>
+        <input id="pf_name" maxlength="200" autocomplete="name">
+      </div>
+      <div class="form-row">
+        <label for="pf_email">Email</label>
+        <input id="pf_email" type="email" autocomplete="email">
+      </div>
+      <div class="form-row">
+        <label for="pf_phone">Phone</label>
+        <input id="pf_phone" maxlength="20" autocomplete="tel">
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="saveProfile()">Save changes</button>
+        <button type="button" onclick="loadProfile()">Reset</button>
+      </div>
+    </section>
+
+    <section class="panel tab-panel" id="panel-password" hidden>
+      <h2 class="panel-head">Password</h2>
+      <p class="panel-sub">Choose a new password (at least 8 characters).</p>
+      <div class="form-row">
+        <label for="pw_current">Current password</label>
+        <input id="pw_current" type="password" autocomplete="current-password">
+      </div>
+      <div class="form-row">
+        <label for="pw_new">New password</label>
+        <input id="pw_new" type="password" autocomplete="new-password">
+      </div>
+      <div class="form-row">
+        <label for="pw_confirm">Confirm</label>
+        <input id="pw_confirm" type="password" autocomplete="new-password">
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="changePassword()">Change password</button>
+      </div>
+    </section>
+
+    <section class="panel tab-panel" id="panel-addresses" hidden>
+      <h2 class="panel-head">Addresses</h2>
+      <p class="panel-sub">Saved delivery addresses. Pick one when you check out.</p>
+      <div class="form-row">
+        <label for="ad_body">Address</label>
+        <input id="ad_body" placeholder="Type an address">
+      </div>
+      <div class="form-row">
+        <label for="ad_id">Saved addresses</label>
+        <select id="ad_id"></select>
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="addAddress()">Add address</button>
+        <button type="button" onclick="updateAddress()">Update selected (with the text above)</button>
+        <button type="button" onclick="deleteAddress()">Delete selected</button>
+      </div>
+    </section>
+
+    <section class="panel tab-panel" id="panel-orders" hidden>
+      <h2 class="panel-head">My orders</h2>
+      <p class="panel-sub">Your order history. Pending and confirmed orders can be cancelled.</p>
+      <div id="orders_table"></div>
+    </section>
+  </div>
+</div>
+
+<script src="../common.js"></script>
+<script src="../nav.js"></script>
+<script src="../panels.js"></script>
+<script>
+function showName() {
+  const name = me.fullName || me.email || 'Account';
+  $('side_name').textContent = name;
+  $('side_avatar').textContent = name.trim().charAt(0).toUpperCase();
+  const top = $('acct_name');
+  if (top) top.textContent = me.fullName || 'Account';
+}
+function loadProfile() {
+  showName();
+  $('pf_name').value = me.fullName || '';
+  $('pf_email').value = me.email || '';
+  $('pf_phone').value = me.phoneNumber || '';
+}
+async function saveProfile() {
+  const body = { fullName: v('pf_name'), email: v('pf_email'), phoneNumber: v('pf_phone') };
+  if (!body.fullName || !body.email || !body.phoneNumber) { notify('Please fill in your name, email and phone.', true); return; }
+  const r = await send('PUT', '/api/customers/' + me.id, body);
+  if (!r.ok) { notify(errorMessage(r), true); return; }
+  Object.assign(me, r.data);
+  localStorage.setItem('gms_customer', JSON.stringify(me));
+  loadProfile();
+  notify('Your details were updated.');
+}
+async function changePassword() {
+  const next = $('pw_new').value;
+  if (next !== $('pw_confirm').value) { notify('The new password and its confirmation do not match.', true); return; }
+  const r = await send('PUT', '/api/customers/' + me.id + '/password', { currentPassword: $('pw_current').value, newPassword: next });
+  if (!r.ok) { notify(errorMessage(r), true); return; }
+  for (const id of ['pw_current', 'pw_new', 'pw_confirm']) $(id).value = '';
+  notify('Your password was changed.');
+}
+
+async function loadAddresses() {
+  const a = await getJson(cust('/addresses'));
+  fillSelect('ad_id', a, x => x.addressBody, '(no saved addresses)');
+  $('side_addr_count').textContent = a.length;
+}
+
+async function loadOrders() {
+  const box = $('orders_table');
+  box.innerHTML = '';
+  const [orders, items] = await Promise.all([getJson('/api/orders/customers/' + me.id), getJson('/api/items')]);
+  $('side_order_count').textContent = orders.length;
+  if (!orders.length) { box.textContent = 'No orders yet.'; return; }
+  const names = Object.fromEntries(items.map(i => [i.id, i.name]));
+  const t = makeTable(['Order', 'Date', 'Status', 'Items', 'Total', '']);
+  t.border = 0;
+  for (const o of orders) {
+    const lines = (o.items || []).map(u => (names[u.itemId] || 'Item ' + u.itemId) + ' : ' + u.unitPrice + ' x ' + u.quantity).join('; ');
+    const cancellable = o.status === 'PENDING' || o.status === 'CONFIRMED';
+    const cancelBtn = cancellable ? makeCancelBtn(o.id) : '';
+    addRow(t.insertRow(), ['#' + o.id, o.date ? String(o.date).replace('T', ' ').slice(0, 16) : '', o.status, lines, o.total, cancelBtn]);
+  }
+  box.appendChild(t);
+}
+
+function makeCancelBtn(orderId) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = 'Cancel order';
+  b.onclick = () => {
+    if (confirm('Cancel order #' + orderId + '?')) act('PATCH', '/api/orders/' + orderId + '/cancel', undefined, 'Order cancelled.');
+  };
+  return b;
+}
+
+async function act(method, path, body, okText) {
+  const r = await send(method, path, body);
+  if (r.ok) { notify(okText, false); await refreshAll(); }
+  else notify(errorMessage(r), true);
+}
+function addAddress() {
+  if (!v('ad_body')) { notify('Type an address first.', true); return; }
+  act('POST', cust('/addresses'), { addressBody: v('ad_body') }, 'Address added.');
+}
+function updateAddress() {
+  if (!v('ad_id')) { notify('Choose an address first.', true); return; }
+  act('PUT', cust('/addresses/' + v('ad_id')), { addressBody: v('ad_body') }, 'Address updated.');
+}
+function deleteAddress() {
+  if (!v('ad_id')) { notify('Choose an address first.', true); return; }
+  act('DELETE', cust('/addresses/' + v('ad_id')), undefined, 'Address deleted.');
+}
+
+async function refreshAll() {
+  await Promise.all([loadProfile(), loadAddresses(), loadOrders()]);
+}
+$('base').onchange = refreshAll;
+initPanels('profile');
+refreshAll();
+</script>
+</body>
+</html>
