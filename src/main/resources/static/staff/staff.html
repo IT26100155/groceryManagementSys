@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Staff Portal</title>
+<link rel="stylesheet" href="../store.css">
+<script>if (!localStorage.getItem("gms_employee")) location.replace("staff-login.html");</script>
+</head>
+<body>
+<input id="base" type="hidden">
+
+<div class="nav">
+  <span class="brand">Staff Portal</span>
+  <div class="nav-right">
+    <span id="who"></span>
+    <button type="button" onclick="logout()">Log out</button>
+  </div>
+</div>
+<div id="msg" class="msg"></div>
+
+<div class="page">
+
+  <!-- ADMIN ONLY -->
+  <div class="panel admin-only">
+    <h2>Create category</h2>
+    <input id="cat_name" placeholder="category name">
+    <button type="button" onclick="createCategory()">Create category</button>
+    <div id="cat_list"></div>
+  </div>
+
+  <div class="panel admin-only">
+    <h2>Create item</h2>
+    <input id="i_name" placeholder="name">
+    <input id="i_brand" placeholder="brand">
+    <input id="i_desc" placeholder="description">
+    <input id="i_stock" type="number" min="0" placeholder="starting stock">
+    <input id="i_price" type="number" min="0" step="any" placeholder="price">
+    <div>Categories: <span id="i_cats_box"></span></div>
+    <button type="button" onclick="createItem()">Create item</button>
+  </div>
+
+  <!-- ADMIN + STAFF -->
+  <div class="panel">
+    <h2>Items</h2>
+    <div id="items_table"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Manage an item</h2>
+    Item: <select id="i_id" onchange="syncItem()"></select>
+    <h3>Restock</h3>
+    Add <input id="r_qty" type="number" min="1" placeholder="quantity" style="width:110px"> units
+    <button type="button" onclick="restock()">Restock</button>
+    <h3>Categories</h3>
+    <div><span id="i_newcats_box"></span></div>
+    <button type="button" onclick="saveCategories()">Save categories</button>
+  </div>
+
+  <div class="panel">
+    <h2>Active discounts</h2>
+    <div id="disc_table"></div>
+  </div>
+
+  <div class="panel admin-only">
+    <h2>Create discount</h2>
+    <input id="d_pct" type="number" min="1" max="100" placeholder="percentage 1-100">
+    <input id="d_min" type="number" min="0" step="any" placeholder="min price (optional)">
+    <br>
+    Start <input id="d_start" type="date">
+    Expires <input id="d_end" type="date">
+    <br>
+    <label><input id="d_store" type="checkbox"> Store-wide</label>
+    <div>Items (if not store-wide): <span id="d_items_box"></span></div>
+    <button type="button" onclick="createDiscount()">Create discount</button>
+  </div>
+
+  <div class="panel admin-only">
+    <h2>Edit discount items</h2>
+    <select id="d_id" onchange="syncDiscountItems()"></select>
+    <div><span id="d_newitems_box"></span></div>
+    <button type="button" onclick="saveDiscountItems()">Save items</button>
+  </div>
+
+  <div class="panel">
+    <h2>Payment confirmation (placeholder)</h2>
+    <p>Lists pending payments started from the customer pages in this browser.</p>
+    <select id="p_id"></select>
+    <button type="button" onclick="confirmPayment()">Confirm selected payment</button>
+  </div>
+</div>
+
+<script src="../common.js"></script>
+<script>
+const me = JSON.parse(localStorage.getItem('gms_employee') || 'null');
+if (!me) location.replace('staff-login.html');
+const isAdmin = me.role === 'ADMIN';
+if (!isAdmin) document.querySelectorAll('.admin-only').forEach(e => e.remove());
+$('who').textContent = me.fullName + ' (' + me.role + ')';
+
+let items = [], discounts = [], cats = [];
+
+function logout() {
+  localStorage.removeItem('gms_employee');
+  location.replace('staff-login.html');
+}
+
+async function act(method, path, body, okText) {
+  const r = await send(method, path, body);
+  if (r.ok) { notify(okText, false); await refreshAll(); }
+  else notify(errorMessage(r), true);
+  return r;
+}
+const stockLabel = i => itemLabel(i) + ' - stock ' + i.availableStock;
+const itemName = id => { const i = items.find(x => x.id === id); return i ? i.name : 'Item ' + id; };
+
+// ---------- loading ----------
+async function loadCategories() {
+  cats = await getJson('/api/categories');
+  if (isAdmin) $('cat_list').textContent = cats.length ? 'Existing categories: ' + cats.map(c => c.name).join(', ') : '(no categories yet)';
+  if (isAdmin) fillChecks('i_cats_box', cats, c => c.name);
+  fillChecks('i_newcats_box', cats, c => c.name);
+}
+
+async function loadItems() {
+  items = await getJson('/api/items');
+  const names = Object.fromEntries(cats.map(c => [c.id, c.name]));
+  const box = $('items_table');
+  box.innerHTML = '';
+  if (!items.length) box.textContent = '(no items yet)';
+  else {
+    const t = makeTable(['Name', 'Brand', 'In stock', 'Categories', 'Price', 'Price now', 'Discounts']);
+    t.border = 0;
+    for (const i of items) {
+      addRow(t.insertRow(), [i.name, i.brand || '', i.availableStock,
+        (i.categoryIds || []).map(id => names[id] || id).join(', ') || '-', i.price, i.discountedPrice, discountText(i.discounts)]);
+    }
+    box.appendChild(t);
+  }
+  fillSelect('i_id', items, stockLabel, '(no items yet)');
+  if (isAdmin) {
+    fillChecks('d_items_box', items, itemLabel);
+    fillChecks('d_newitems_box', items, itemLabel);
+  }
+  syncItem();
+  if (isAdmin) syncDiscountItems();
+}
+
+function syncItem() {
+  const it = items.find(i => String(i.id) === v('i_id'));
+  setChecks('i_newcats_box', it ? it.categoryIds || [] : []);
+}
+
+async function loadDiscounts() {
+  discounts = await getJson('/api/discounts');
+  const box = $('disc_table');
+  box.innerHTML = '';
+  if (!discounts.length) box.textContent = '(no active discounts)';
+  else {
+    const t = makeTable(['Discount', 'Min price', 'Starts', 'Expires', 'Applies to', '']);
+    t.border = 0;
+    for (const d of discounts) {
+      const scope = d.storeWide ? 'Whole store' : (d.itemIds || []).map(itemName).join(', ') || '-';
+      addRow(t.insertRow(), [d.percentage + '% off', d.minPrice != null ? d.minPrice : '-', d.startDate, d.expireDate, scope,
+        makeButton('Deactivate', () => act('PATCH', '/api/discounts/' + d.id + '/deactivate', undefined, 'Discount deactivated.'))]);
+    }
+    box.appendChild(t);
+  }
+  if (isAdmin) {
+    fillSelect('d_id', discounts, x => x.percentage + '% off, ' + x.startDate + ' to ' + x.expireDate +
+      (x.storeWide ? ' (store-wide)' : ' (' + x.itemIds.length + ' items)'), '(no active discounts)');
+    syncDiscountItems();
+  }
+}
+
+function syncDiscountItems() {
+  const d = discounts.find(x => String(x.id) === v('d_id'));
+  setChecks('d_newitems_box', d ? d.itemIds || [] : []);
+}
+
+async function loadPending() {
+  const pending = [];
+  for (const orderId of trackedOrders()) {
+    const list = await getJson('/api/payments/orders/' + orderId);
+    for (const p of list) if (p.state === 'PENDING') pending.push(p);
+  }
+  fillSelect('p_id', pending, p => 'Order #' + p.orderId + ' - Payment #' + p.id + ' - ' + p.type, '(no pending payments)');
+}
+
+// ---------- actions: admin + staff ----------
+function restock() {
+  const q = parseInt(v('r_qty'), 10);
+  if (!v('i_id')) { notify('Choose an item first.', true); return; }
+  if (!(q >= 1)) { notify('Enter a quantity of 1 or more.', true); return; }
+  act('PATCH', '/api/items/' + v('i_id') + '/restock', { quantity: q }, 'Item restocked.').then(r => { if (r.ok) $('r_qty').value = ''; });
+}
+function saveCategories() {
+  if (!v('i_id')) { notify('Choose an item first.', true); return; }
+  act('PUT', '/api/items/' + v('i_id') + '/categories', { categoryIds: checked('i_newcats_box') }, 'Item categories saved.');
+}
+function confirmPayment() {
+  if (!v('p_id')) { notify('No payment selected.', true); return; }
+  act('PATCH', '/api/payments/' + v('p_id') + '/confirm', undefined, 'Payment confirmed.');
+}
+
+// ---------- actions: admin only ----------
+function createCategory() {
+  if (!isAdmin) return;
+  act('POST', '/api/categories', { name: v('cat_name') }, 'Category created.').then(r => { if (r.ok) $('cat_name').value = ''; });
+}
+function createItem() {
+  if (!isAdmin) return;
+  act('POST', '/api/items', {
+    name: v('i_name'), categoryIds: checked('i_cats_box'), description: v('i_desc'),
+    availableStock: n('i_stock'), brand: v('i_brand'), price: n('i_price')
+  }, 'Item created.');
+}
+function createDiscount() {
+  if (!isAdmin) return;
+  act('POST', '/api/discounts', {
+    percentage: n('d_pct'), minPrice: n('d_min'), startDate: v('d_start'), expireDate: v('d_end'),
+    employeeId: me.id, storeWide: $('d_store').checked, itemIds: checked('d_items_box')
+  }, 'Discount created.');
+}
+function saveDiscountItems() {
+  if (!isAdmin) return;
+  if (!v('d_id')) { notify('Choose a discount first.', true); return; }
+  act('PUT', '/api/discounts/' + v('d_id') + '/items', { itemIds: checked('d_newitems_box') }, 'Discount items saved.');
+}
+
+async function refreshAll() {
+  await loadCategories();
+  await Promise.all([loadItems(), loadDiscounts(), loadPending()]);
+}
+$('base').onchange = refreshAll;
+refreshAll();
+</script>
+</body>
+</html>

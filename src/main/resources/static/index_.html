@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Grocery Management System</title>
+</head>
+<body>
+<h1>Grocery Management System</h1>
+
+<p>API base URL: <input id="base" size="30"> (leave empty if this page is served by the Spring app)
+    <button onclick="refreshAll()">Refresh all lists</button></p>
+<p>Logged in customer: <span id="cid_label">(none)</span> | Logged in employee: <span id="eid_label">(none)</span></p>
+<input id="cid" type="hidden">
+<input id="eid" type="hidden">
+
+<h2>Response</h2>
+<pre id="out"></pre>
+
+<hr>
+<h2>Customer</h2>
+<h3>Sign up</h3>
+<input id="cs_name" placeholder="full name">
+<input id="cs_email" placeholder="email">
+<input id="cs_pass" type="password" placeholder="password (8+)">
+<input id="cs_phone" placeholder="phone">
+<button onclick="customerSignup()">Sign up</button>
+<h3>Log in</h3>
+<input id="cl_email" placeholder="email">
+<input id="cl_pass" type="password" placeholder="password">
+<button onclick="customerLogin()">Log in</button>
+
+<hr>
+<h2>Employee</h2>
+<h3>Sign up</h3>
+<input id="es_name" placeholder="full name">
+<input id="es_email" placeholder="email">
+<input id="es_pass" type="password" placeholder="password (8+)">
+<select id="es_role"><option>ADMIN</option><option>STAFF</option></select>
+<button onclick="employeeSignup()">Sign up</button>
+<h3>Log in</h3>
+<input id="el_email" placeholder="email">
+<input id="el_pass" type="password" placeholder="password">
+<button onclick="employeeLogin()">Log in</button>
+
+<hr>
+<h2>Categories</h2>
+<input id="cat_name" placeholder="category name">
+<button onclick="call('POST','/api/categories',{name:v('cat_name')})">Create</button>
+<button onclick="call('GET','/api/categories')">List all</button>
+<br>
+<select id="cat_id"></select>
+<button onclick="call('GET','/api/categories/'+v('cat_id'))">Get selected category</button>
+
+<hr>
+<h2>Items</h2>
+<h3>Create</h3>
+<input id="i_name" placeholder="name">
+<input id="i_desc" placeholder="description">
+<input id="i_stock" placeholder="available stock">
+<input id="i_brand" placeholder="brand">
+<input id="i_price" placeholder="price">
+<div>Categories: <span id="i_cats_box"></span></div>
+<button onclick="createItem()">Create item</button>
+<h3>Browse</h3>
+<button onclick="call('GET','/api/items')">List all</button>
+<select id="i_filter"></select>
+<button onclick="call('GET','/api/items?categoryId='+v('i_filter'))">List by category</button>
+<br>
+<select id="i_id"></select>
+<button onclick="call('GET','/api/items/'+v('i_id'))">Get selected item</button>
+<div>New categories for the selected item: <span id="i_newcats_box"></span></div>
+<button onclick="call('PUT','/api/items/'+v('i_id')+'/categories',{categoryIds:checked('i_newcats_box')})">Update categories</button>
+
+<hr>
+<h2>Cart (logged in customer)</h2>
+<button onclick="call('GET',cust('/cart'))">View cart</button>
+<br>
+<select id="ca_item"></select>
+<input id="ca_qty" placeholder="quantity">
+<button onclick="call('POST',cust('/cart/items'),{itemId:n('ca_item'),quantity:n('ca_qty')})">Add item</button>
+<br>
+<select id="ca_rm"></select>
+<button onclick="call('DELETE',cust('/cart/items/'+v('ca_rm')))">Remove selected item from cart</button>
+
+<hr>
+<h2>Addresses (logged in customer)</h2>
+<button onclick="call('GET',cust('/addresses'))">List addresses</button>
+<br>
+<input id="ad_body" placeholder="address" size="40">
+<button onclick="call('POST',cust('/addresses'),{addressBody:v('ad_body')})">Create address</button>
+<br>
+<select id="ad_id"></select>
+<button onclick="call('PUT',cust('/addresses/'+v('ad_id')),{addressBody:v('ad_body')})">Update selected (uses text above)</button>
+<button onclick="call('DELETE',cust('/addresses/'+v('ad_id')))">Delete selected</button>
+
+<hr>
+<h2>Orders (logged in customer)</h2>
+<h3>Place order (checks out the cart)</h3>
+Deliver to: <select id="o_addr"></select>
+<button onclick="placeOrder()">Place order</button>
+<h3>Look up</h3>
+<select id="o_id"></select>
+<button onclick="call('GET','/api/orders/'+v('o_id'))">Get selected order</button>
+<button onclick="call('GET','/api/orders/customers/'+v('cid'))">List my orders</button>
+
+<hr>
+<h2>Payments</h2>
+Order: <select id="p_order" onchange="loadPayments()"></select>
+<select id="p_type"><option>CARD</option><option>DIGITAL_WALLET</option></select>
+<button onclick="call('POST','/api/payments/orders/'+v('p_order'),{orderId:n('p_order'),type:v('p_type')})">Initiate payment</button>
+<button onclick="call('GET','/api/payments/orders/'+v('p_order'))">List payments for order</button>
+<br>
+Payment: <select id="p_id"></select>
+<button onclick="call('PATCH','/api/payments/'+v('p_id')+'/confirm')">Confirm</button>
+<button onclick="call('PATCH','/api/payments/'+v('p_id')+'/cancel')">Cancel</button>
+
+<hr>
+<h2>Discounts</h2>
+<h3>Create (logged in employee)</h3>
+<input id="d_pct" placeholder="percentage 1-100">
+<input id="d_min" placeholder="min price (optional)">
+start <input id="d_start" type="date">
+expire <input id="d_end" type="date">
+store-wide <input id="d_store" type="checkbox">
+<div>Items (if not store-wide): <span id="d_items_box"></span></div>
+<button onclick="createDiscount()">Create discount</button>
+<h3>Manage</h3>
+<button onclick="call('GET','/api/discounts')">List active</button>
+<select id="d_id"></select>
+<div>Items for the selected discount: <span id="d_newitems_box"></span></div>
+<button onclick="call('PUT','/api/discounts/'+v('d_id')+'/items',{itemIds:checked('d_newitems_box')})">Update items</button>
+<button onclick="call('PATCH','/api/discounts/'+v('d_id')+'/deactivate')">Deactivate selected</button>
+
+<script>
+    const $ = id => document.getElementById(id);
+    const v = id => $(id).value.trim();
+    const n = id => v(id) === '' ? null : Number(v(id));
+    const cust = path => '/api/customers/' + v('cid') + path;
+    const checked = boxId => Array.from($(boxId).querySelectorAll('input:checked')).map(c => Number(c.value));
+    const base = () => $('base').value.trim();
+
+    $('base').value = location.protocol.startsWith('http') ? '' : 'http://localhost:8080';
+
+    async function getJson(path) {
+        try {
+            const res = await fetch(base() + path);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (e) { return []; }
+    }
+
+    function fillSelect(id, list, labelFn, empty) {
+        const sel = $(id);
+        const prev = sel.value;
+        sel.innerHTML = '';
+        if (!list.length) {
+            const o = document.createElement('option');
+            o.value = '';
+            o.textContent = empty || '(none available)';
+            sel.appendChild(o);
+            return;
+        }
+        for (const x of list) {
+            const o = document.createElement('option');
+            o.value = x.id !== undefined ? x.id : x.itemId;
+            o.textContent = labelFn(x);
+            sel.appendChild(o);
+        }
+        if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+    }
+
+    function fillChecks(id, list, labelFn) {
+        const box = $(id);
+        const keep = new Set(checked(id));
+        box.innerHTML = '';
+        if (!list.length) { box.textContent = '(none available)'; return; }
+        for (const x of list) {
+            const label = document.createElement('label');
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = x.id;
+            cb.checked = keep.has(x.id);
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(' ' + labelFn(x) + '  '));
+            box.appendChild(label);
+        }
+    }
+
+    const itemLabel = i => i.name + (i.brand ? ' (' + i.brand + ')' : '') + ' - ' + i.price;
+
+    async function loadCategories() {
+        const cats = await getJson('/api/categories');
+        const lbl = c => c.name;
+        fillSelect('cat_id', cats, lbl, '(no categories yet)');
+        fillSelect('i_filter', cats, lbl, '(no categories yet)');
+        fillChecks('i_cats_box', cats, lbl);
+    }
+    async function loadItems() {
+        const items = await getJson('/api/items');
+        fillSelect('i_id', items, itemLabel, '(no items yet)');
+        fillSelect('ca_item', items, itemLabel, '(no items yet)');
+        fillChecks('i_newcats_box', await getJson('/api/categories'), c => c.name);
+        fillChecks('d_items_box', items, itemLabel);
+        fillChecks('d_newitems_box', items, itemLabel);
+    }
+    async function loadCart() {
+        if (!v('cid')) { fillSelect('ca_rm', [], null, '(log in as customer)'); return; }
+        const cart = await getJson(cust('/cart'));
+        fillSelect('ca_rm', cart.items || [], i => i.itemName + ' x ' + i.quantity, '(cart is empty)');
+    }
+    async function loadAddresses() {
+        if (!v('cid')) {
+            fillSelect('ad_id', [], null, '(log in as customer)');
+            fillSelect('o_addr', [], null, '(log in as customer)');
+            return;
+        }
+        const a = await getJson(cust('/addresses'));
+        fillSelect('ad_id', a, x => x.addressBody, '(no saved addresses)');
+        fillSelect('o_addr', a, x => x.addressBody, '(no saved addresses)');
+    }
+    async function loadOrders() {
+        if (!v('cid')) {
+            fillSelect('o_id', [], null, '(log in as customer)');
+            fillSelect('p_order', [], null, '(log in as customer)');
+            fillSelect('p_id', [], null, '(log in as customer)');
+            return;
+        }
+        const o = await getJson('/api/orders/customers/' + v('cid'));
+        const lbl = x => 'Order #' + x.id + ' - ' + x.status + ' - total ' + x.total;
+        fillSelect('o_id', o, lbl, '(no orders yet)');
+        fillSelect('p_order', o, lbl, '(no orders yet)');
+        await loadPayments();
+    }
+    async function loadPayments() {
+        if (!v('p_order')) { fillSelect('p_id', [], null, '(select an order with payments)'); return; }
+        const p = await getJson('/api/payments/orders/' + v('p_order'));
+        fillSelect('p_id', p, x => 'Payment #' + x.id + ' - ' + x.type + ' - ' + x.state, '(no payments for this order)');
+    }
+    async function loadDiscounts() {
+        const d = await getJson('/api/discounts');
+        fillSelect('d_id', d, x => x.percentage + '% off, ' + x.startDate + ' to ' + x.expireDate + (x.storeWide ? ' (store-wide)' : ' (items: ' + x.itemIds.length + ')'), '(no active discounts)');
+    }
+    async function refreshAll() {
+        await Promise.all([loadCategories(), loadItems(), loadCart(), loadAddresses(), loadOrders(), loadDiscounts()]);
+    }
+    $('base').onchange = refreshAll;
+
+    async function call(method, path, body) {
+        if (path.includes('/customers//') || path.endsWith('/customers/')) {
+            $('out').textContent = 'Log in as a customer first.';
+            return null;
+        }
+        if (path.includes('/orders/customers/') && !v('cid')) {
+            $('out').textContent = 'Log in as a customer first.';
+            return null;
+        }
+        const opts = { method, headers: {} };
+        if (body !== undefined) {
+            opts.headers['Content-Type'] = 'application/json';
+            opts.body = JSON.stringify(body);
+        }
+        $('out').textContent = method + ' ' + path + '\n...';
+        try {
+            const res = await fetch(base() + path, opts);
+            const text = await res.text();
+            let data = text, parsed = null;
+            try { parsed = JSON.parse(text); data = JSON.stringify(parsed, null, 2); } catch (e) {}
+            $('out').textContent = method + ' ' + path + '\n' + res.status + ' ' + res.statusText + '\n\n' + data;
+            if (res.ok && method !== 'GET') refreshAll();
+            return res.ok ? parsed : null;
+        } catch (e) {
+            $('out').textContent = 'Request failed: ' + e.message;
+            return null;
+        }
+    }
+
+    function setCustomer(r) {
+        if (r && r.id) {
+            $('cid').value = r.id;
+            $('cid_label').textContent = r.fullName + ' (' + r.email + ')';
+            refreshAll();
+        }
+    }
+    function setEmployee(r) {
+        if (r && r.id) {
+            $('eid').value = r.id;
+            $('eid_label').textContent = r.fullName + ' (' + r.role + ')';
+        }
+    }
+    async function customerSignup() {
+        setCustomer(await call('POST', '/api/customers/signup', {
+            fullName: v('cs_name'), email: v('cs_email'), password: v('cs_pass'), phoneNumber: v('cs_phone')
+        }));
+    }
+    async function customerLogin() {
+        setCustomer(await call('POST', '/api/customers/login', { email: v('cl_email'), password: v('cl_pass') }));
+    }
+    async function employeeSignup() {
+        setEmployee(await call('POST', '/api/employees/signup', {
+            fullName: v('es_name'), email: v('es_email'), password: v('es_pass'), role: v('es_role')
+        }));
+    }
+    async function employeeLogin() {
+        setEmployee(await call('POST', '/api/employees/login', { email: v('el_email'), password: v('el_pass') }));
+    }
+    function createItem() {
+        call('POST', '/api/items', {
+            name: v('i_name'), categoryIds: checked('i_cats_box'), description: v('i_desc'),
+            availableStock: n('i_stock'), brand: v('i_brand'), price: n('i_price')
+        });
+    }
+    function placeOrder() {
+        if (!v('cid')) { $('out').textContent = 'Log in as a customer first.'; return; }
+        call('POST', '/api/orders', { customerId: n('cid'), addressId: n('o_addr') });
+    }
+    function createDiscount() {
+        if (!v('eid')) { $('out').textContent = 'Log in as an employee first.'; return; }
+        call('POST', '/api/discounts', {
+            percentage: n('d_pct'), minPrice: n('d_min'), startDate: v('d_start'), expireDate: v('d_end'),
+            employeeId: n('eid'), storeWide: $('d_store').checked, itemIds: checked('d_items_box')
+        });
+    }
+
+    refreshAll();
+</script>
+</body>
+</html>

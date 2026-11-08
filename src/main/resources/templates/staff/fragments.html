@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  Shared pieces of every staff page. Use them like this:
+    <head th:replace="~{staff/fragments :: head('Page title')}"></head>
+    <nav th:replace="~{staff/fragments :: navbar('inventory')}"></nav>      (inventory | categories | logs | discounts | payments | orders | team | account)
+    <div th:replace="~{staff/fragments :: alerts}"></div>
+    <script th:replace="~{staff/fragments :: scripts}"></script>
+-->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' - Staff Portal'">Staff Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+
+<nav th:fragment="navbar(active)" class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/staff/inventory/items}"><i class="bi bi-shop me-2"></i>Staff Portal</a>
+        <ul class="navbar-nav me-auto flex-row gap-3">
+            <li class="nav-item"><a class="nav-link" th:classappend="${active == 'inventory'} ? 'active'" th:href="@{/staff/inventory/items}">Inventory</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${active == 'categories'} ? 'active'" th:href="@{/staff/inventory/categories}">Categories</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${active == 'logs'} ? 'active'" th:href="@{/staff/inventory/audit-logs}">Stock log</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${active == 'discounts'} ? 'active'" th:href="@{/staff/discounts}">Discounts</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${active == 'payments'} ? 'active'" th:href="@{/staff/payments}">Payments</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${active == 'orders'} ? 'active'" th:href="@{/staff/orders}">Orders</a></li>
+            <li class="nav-item" th:if="${staffUser != null and staffUser.admin}"><a class="nav-link" th:classappend="${active == 'team'} ? 'active'" th:href="@{/staff/team}">Staff</a></li>
+        </ul>
+        <div class="d-flex align-items-center text-light" th:if="${staffUser != null}">
+            <a class="me-3 small text-light text-decoration-none" th:href="@{/staff/account}" title="Edit my account">
+                <i class="bi bi-person-circle me-1"></i><span th:text="${staffUser.fullName}"></span>
+                <span class="badge bg-secondary" th:text="${staffUser.role}"></span>
+            </a>
+            <form th:action="@{/staff/logout}" method="post" class="m-0">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<div th:fragment="alerts" class="container mt-3">
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${param.denied}" class="alert alert-warning alert-dismissible fade show" role="alert">
+        Only an admin can do that.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</div>
+
+<script th:fragment="scripts" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
