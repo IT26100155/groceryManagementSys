@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your cart</title>
+<link rel="stylesheet" href="../store.css">
+<script>if (!localStorage.getItem("gms_customer")) location.replace("../index.html");</script>
+</head>
+<body>
+<input id="base" type="hidden">
+<div id="nav"></div>
+<div id="msg" class="msg"></div>
+
+<div class="dash">
+  <aside class="sidemenu">
+    <nav>
+      <a href="#cart" data-panel="cart">Your cart <span class="pill" id="side_cart_count">0</span></a>
+      <a href="#checkout" data-panel="checkout">Checkout</a>
+      <a href="#payments" data-panel="payments">Payments</a>
+    </nav>
+    <a class="back" href="customer.html">&larr; Continue shopping</a>
+  </aside>
+
+  <div class="dash-main">
+    <section class="panel tab-panel" id="panel-cart">
+      <h2 class="panel-head">Your cart</h2>
+      <p class="panel-sub">Review your items, then continue to checkout.</p>
+      <div id="cart_table"></div>
+    </section>
+
+    <section class="panel tab-panel" id="panel-checkout" hidden>
+      <h2 class="panel-head">Checkout</h2>
+      <p class="panel-sub">Choose where to deliver your order.</p>
+      <div class="form-row">
+        <label for="o_addr">Deliver to</label>
+        <select id="o_addr"></select>
+        <a href="account.html#addresses">Manage addresses</a>
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="placeOrder()">Place order</button>
+      </div>
+    </section>
+
+    <section class="panel tab-panel" id="panel-payments" hidden>
+      <h2 class="panel-head">Pay for an order</h2>
+      <p class="panel-sub">Payments are confirmed by our staff after you pay.</p>
+      <div class="form-row">
+        <label for="p_order">Order</label>
+        <select id="p_order" onchange="loadPayments()"></select>
+      </div>
+      <div id="order_detail" class="order-detail"></div>
+      <div class="form-row">
+        <label for="p_type">Method</label>
+        <select id="p_type"><option>CARD</option><option>DIGITAL_WALLET</option></select>
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="pay()">Pay</button>
+      </div>
+      <h3>Payments on this order</h3>
+      <div class="form-row">
+        <select id="p_id"></select>
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="cancelPayment()">Cancel selected payment</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="../common.js"></script>
+<script src="../nav.js"></script>
+<script src="../panels.js"></script>
+<script>
+function makeBtn(text, fn) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = text;
+  b.onclick = fn;
+  return b;
+}
+
+async function loadCart() {
+  const box = $('cart_table');
+  box.innerHTML = '';
+  const cart = await getJson(cust('/cart'));
+  const count = (cart.items || []).reduce((sum, i) => sum + i.quantity, 0);
+  $('side_cart_count').textContent = count;
+  if (!cart.items || !cart.items.length) { box.textContent = 'Your cart is empty.'; return; }
+  const t = makeTable(['Item', 'Quantity', 'Unit price', 'Discounts', 'Line total', '']);
+  t.border = 0;
+  for (const i of cart.items) {
+    const price = i.discountedUnitPrice < i.originalUnitPrice
+      ? i.originalUnitPrice + ' \u2192 ' + i.discountedUnitPrice : String(i.originalUnitPrice);
+    addRow(t.insertRow(), [i.itemName, i.quantity, price, discountText(i.discounts), i.lineTotal,
+      makeBtn('Remove', () => act('DELETE', cust('/cart/items/' + i.itemId), undefined, 'Item removed.'))]);
+  }
+  box.appendChild(t);
+  const total = document.createElement('p');
+  total.innerHTML = '<b>Cart total: </b>';
+  total.appendChild(document.createTextNode(cart.total));
+  box.appendChild(total);
+  const go = makeBtn('Continue to checkout', () => showPanel('checkout'));
+  box.appendChild(go);
+}
+
+async function loadAddresses() {
+  const a = await getJson(cust('/addresses'));
+  fillSelect('o_addr', a, x => x.addressBody, '(add an address in My account)');
+}
+
+let ordersCache = [];
+let itemsCache = {};
+
+async function loadOrders() {
+  const [o, items] = await Promise.all([getJson('/api/orders/customers/' + me.id), getJson('/api/items')]);
+  ordersCache = o;
+  itemsCache = Object.fromEntries(items.map(i => [i.id, i]));
+  fillSelect('p_order', o, x => 'Order #' + x.id + ' - ' + x.status + ' - total ' + x.total, '(no orders yet)');
+  await loadPayments();
+}
+
+function renderOrderDetail() {
+  const box = $('order_detail');
+  box.innerHTML = '';
+  const order = ordersCache.find(o => String(o.id) === v('p_order'));
+  if (!order) return;
+
+  const t = document.createElement('table');
+  t.className = 'detail-table';
+  const head = t.createTHead().insertRow();
+  for (const h of ['Item', 'Unit price', 'Quantity']) {
+    const th = document.createElement('th');
+    th.textContent = h;
+    head.appendChild(th);
+  }
+  const body = t.createTBody();
+  for (const u of order.items || []) {
+    const item = itemsCache[u.itemId];
+    const row = body.insertRow();
+
+    const nameCell = row.insertCell();
+    const name = document.createElement('div');
+    name.className = 'item-name';
+    name.textContent = item ? item.name : 'Item ' + u.itemId;
+    nameCell.appendChild(name);
+    if (item && item.brand) {
+      const supplier = document.createElement('div');
+      supplier.className = 'item-supplier';
+      supplier.textContent = item.brand;
+      nameCell.appendChild(supplier);
+    }
+    row.insertCell().textContent = u.unitPrice;
+    row.insertCell().textContent = u.quantity;
+  }
+  const foot = t.createTFoot().insertRow();
+  const label = foot.insertCell();
+  label.colSpan = 2;
+  label.textContent = 'Order total';
+  foot.insertCell().textContent = order.total;
+  box.appendChild(t);
+}
+
+async function loadPayments() {
+  renderOrderDetail();
+  if (!v('p_order')) { fillSelect('p_id', [], null, '(no payments)'); return; }
+  const p = await getJson('/api/payments/orders/' + v('p_order'));
+  fillSelect('p_id', p, x => 'Payment #' + x.id + ' - ' + x.type + ' - ' + x.state, '(no payments on this order)');
+}
+
+async function act(method, path, body, okText) {
+  const r = await send(method, path, body);
+  if (r.ok) { notify(okText, false); await refreshAll(); }
+  else notify(errorMessage(r), true);
+  return r;
+}
+
+async function placeOrder() {
+  if (!v('o_addr')) { notify('Choose a delivery address first.', true); return; }
+  const r = await act('POST', '/api/orders', { customerId: me.id, addressId: n('o_addr') }, 'Order placed. You can pay for it now.');
+  if (r.ok) showPanel('payments');
+}
+async function pay() {
+  if (!v('p_order')) { notify('Choose an order first.', true); return; }
+  const r = await act('POST', '/api/payments/orders/' + v('p_order'), { orderId: n('p_order'), type: v('p_type') },
+    'Payment started. Staff will confirm it shortly.');
+  if (r.ok && r.data && r.data.orderId) trackOrder(r.data.orderId);
+}
+function cancelPayment() {
+  if (!v('p_id')) { notify('Choose a payment first.', true); return; }
+  act('PATCH', '/api/payments/' + v('p_id') + '/cancel', undefined, 'Payment cancelled.');
+}
+
+async function refreshAll() {
+  await Promise.all([loadCart(), loadAddresses(), loadOrders(), refreshCartCount()]);
+}
+$('base').onchange = refreshAll;
+initPanels('cart');
+refreshAll();
+</script>
+</body>
+</html>
