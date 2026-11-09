@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments :: head('Edit item categories')}"></head>
+<body class="bg-light">
+<nav th:replace="~{staff/fragments :: navbar('inventory')}"></nav>
+<div th:replace="~{staff/fragments :: alerts}"></div>
+
+<div class="container my-4" style="max-width: 600px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Edit categories</h4>
+        </div>
+        <div class="card-body">
+            <p class="mb-3">
+                <strong th:text="${item.name}"></strong>
+                <span class="text-muted small" th:if="${item.brandSupplier != null and !item.brandSupplier.empty}" th:text="'(' + ${item.brandSupplier} + ')'"></span>
+            </p>
+            <form th:action="@{/staff/inventory/items/{id}/categories(id=${item.id})}" method="post">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <div class="mb-3">
+                    <div class="form-check" th:each="cat : ${categories}">
+                        <input class="form-check-input" type="checkbox" name="categoryIds"
+                               th:id="${'cat' + cat.id}" th:value="${cat.id}"
+                               th:checked="${#lists.contains(item.categoryIds, cat.id)}">
+                        <label class="form-check-label" th:for="${'cat' + cat.id}" th:text="${cat.name}"></label>
+                    </div>
+                    <p th:if="${#lists.isEmpty(categories)}" class="text-muted mb-0">
+                        There are no categories yet. <a th:href="@{/staff/inventory/categories}">Create one first.</a>
+                    </p>
+                </div>
+                <div class="form-text mb-3">
+                    Tick every category this item belongs to. Leaving all unticked removes it from every category.
+                    Need another one? <a th:href="@{/staff/inventory/categories}">Create a category.</a>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <a th:href="@{/staff/inventory/items}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save categories</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script th:replace="~{staff/fragments :: scripts}"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments :: head('Categories')}"></head>
+<body class="bg-light">
+<nav th:replace="~{staff/fragments :: navbar('categories')}"></nav>
+<div th:replace="~{staff/fragments :: alerts}"></div>
+
+<div class="container my-4" style="max-width: 760px;">
+    <h2 class="fw-bold mb-3"><i class="bi bi-tags me-2"></i>Item Categories</h2>
+
+    <div class="card shadow-sm mb-4" th:if="${staffUser.admin}">
+        <div class="card-header bg-primary text-white"><h5 class="mb-0">Create category</h5></div>
+        <div class="card-body">
+            <form th:action="@{/staff/inventory/categories}" method="post" class="row g-2">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <div class="col-sm-9">
+                    <input type="text" name="name" class="form-control" maxlength="100" required placeholder="e.g., Snacks & Sweets">
+                </div>
+                <div class="col-sm-3">
+                    <button type="submit" class="btn btn-primary w-100">Create</button>
+                </div>
+            </form>
+            <div class="form-text mt-2">
+                A new category starts empty. Use <strong>Edit categories</strong> on an item in the
+                <a th:href="@{/staff/inventory/items}">inventory</a> to file items under it.
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive bg-white rounded shadow-sm">
+        <table class="table align-middle mb-0">
+            <thead class="table-dark">
+            <tr>
+                <th>Category</th>
+                <th style="width: 140px;">Items</th>
+                <th style="width: 220px;"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="cat : ${categories}">
+                <td th:text="${cat.name}"></td>
+                <td><span class="badge bg-secondary rounded-pill" th:text="${cat.itemCount}"></span></td>
+                <td class="text-end">
+                    <a th:href="@{/staff/inventory/items(categoryId=${cat.id})}" class="btn btn-outline-secondary btn-sm">View items</a>
+                    <form th:if="${staffUser.admin}" th:action="@{/staff/inventory/categories/{id}/delete(id=${cat.id})}" method="post" class="d-inline"
+                          th:data-name="${cat.name}" th:data-count="${cat.itemCount}"
+                          onsubmit="return confirm('Delete the category &quot;' + this.dataset.name + '&quot;?' + (Number(this.dataset.count) > 0 ? '\n' + this.dataset.count + ' item(s) will stay in the inventory but lose this category.' : ''));">
+                        <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(categories)}">
+                <td colspan="3" class="text-center py-4 text-muted">No categories yet.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script th:replace="~{staff/fragments :: scripts}"></script>
+</body>
+</html>

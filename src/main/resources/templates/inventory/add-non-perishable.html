@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments :: head('Add Non-Perishable Grocery Item')}"></head>
+<body class="bg-light">
+<nav th:replace="~{staff/fragments :: navbar('inventory')}"></nav>
+<div th:replace="~{staff/fragments :: alerts}"></div>
+
+<div class="container my-4" style="max-width: 600px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">Add Non-Perishable Grocery Item</h4>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/staff/inventory/add-non-perishable}" th:object="${itemDTO}" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <div class="mb-3">
+                    <label class="form-label">Item Name</label>
+                    <input type="text" th:field="*{name}" class="form-control" required placeholder="e.g., Basmati Rice 5kg">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Categories <small class="text-muted">(Ctrl/Cmd+click to pick several)</small></label>
+                    <select th:field="*{categoryIds}" class="form-select" multiple>
+                        <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Brand / Supplier</label>
+                    <input type="text" th:field="*{brandSupplier}" class="form-control" placeholder="e.g., Royal Choice">
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Price ($)</label>
+                        <input type="number" step="0.01" min="0" th:field="*{price}" class="form-control" required placeholder="12.99">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Initial Stock</label>
+                        <input type="number" min="0" th:field="*{availableStock}" class="form-control" required placeholder="40">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Shelf Life (Months)</label>
+                    <input type="number" min="0" th:field="*{shelfLifeMonths}" class="form-control" placeholder="24">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="imageFile">Item picture</label>
+                    <input id="imageFile" type="file" name="imageFile" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp">
+                    <div class="form-text">JPG, PNG, GIF or WebP, up to 5 MB. It is saved on the server and shown in the store.</div>
+                    <img id="imagePreview" alt="Picture preview" class="rounded mt-2 d-none" style="max-height: 140px;">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea th:field="*{description}" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <a th:href="@{/staff/inventory/items}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script th:replace="~{staff/fragments :: scripts}"></script>
+<script>
+    document.getElementById('imageFile').addEventListener('change', function () {
+        var preview = document.getElementById('imagePreview');
+        var file = this.files[0];
+        if (file && file.size > 5 * 1024 * 1024) {
+            alert('That picture is larger than 5 MB. Please choose a smaller one.');
+            this.value = '';
+            file = null;
+        }
+        if (file) {
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('d-none');
+        } else {
+            preview.classList.add('d-none');
+        }
+    });
+</script>
+</body>
+</html>

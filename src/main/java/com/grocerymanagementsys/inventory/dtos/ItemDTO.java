@@ -6,6 +6,11 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -17,8 +22,8 @@ public class ItemDTO {
     @NotBlank(message = "Item name is required")
     private String name;
 
-    private Long categoryId;
-    private String categoryName;
+    private List<Long> categoryIds = new ArrayList<>();
+    private List<String> categoryNames = new ArrayList<>();
 
     private String description;
 
@@ -30,9 +35,12 @@ public class ItemDTO {
 
     @NotNull(message = "Price is required")
     @Min(value = 0, message = "Price must be positive")
-    private Double price;
+    private BigDecimal price;
 
+    /** The stored web path of the picture (read side). */
     private String imageUrl;
+    /** The picture chosen in the add-item form (write side). */
+    private MultipartFile imageFile;
     private String storageType;
 
     private String itemType;

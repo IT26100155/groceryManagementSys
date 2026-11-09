@@ -21,7 +21,7 @@ public class InventoryUpdateDTO {
     private String itemName;
 
     @NotNull(message = "Employee ID is required")
-    private Long employeeId;
+    private Integer employeeId;
 
     @NotNull(message = "Amount is required")
     private Integer amount;

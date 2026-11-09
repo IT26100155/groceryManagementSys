@@ -1,8 +1,10 @@
+package com.grocerymanagementsys.inventory.entities;
+
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "item_category")
@@ -19,7 +21,9 @@ public class ItemCategory {
     @Column(nullable = false, unique = true)
     private String name;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany(mappedBy = "categories")
     @ToString.Exclude
-    private List<Item> items = new ArrayList<>();
+    @EqualsAndHashCode.Exclude
+    @Builder.Default
+    private Set<Item> items = new HashSet<>();
 }

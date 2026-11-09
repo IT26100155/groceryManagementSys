@@ -18,8 +18,9 @@ public class ItemImage {
     @Column(nullable = false)
     private String url;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "item_id", nullable = false)
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Item item;
 }

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments :: head('Change item picture')}"></head>
+<body class="bg-light">
+<nav th:replace="~{staff/fragments :: navbar('inventory')}"></nav>
+<div th:replace="~{staff/fragments :: alerts}"></div>
+
+<div class="container my-4" style="max-width: 600px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Change picture</h4>
+        </div>
+        <div class="card-body">
+            <p class="mb-3">
+                <strong th:text="${item.name}"></strong>
+                <span class="text-muted small" th:if="${item.brandSupplier != null and !item.brandSupplier.empty}" th:text="'(' + ${item.brandSupplier} + ')'"></span>
+            </p>
+
+            <div class="mb-3">
+                <div class="form-label">Current picture</div>
+                <img th:if="${item.imageUrl != null and !item.imageUrl.empty and !item.imageUrl.startsWith('https://via.placeholder.com')}"
+                     th:src="${item.imageUrl}" alt="Current picture" class="rounded border" style="max-height: 180px; max-width: 100%;">
+                <div th:unless="${item.imageUrl != null and !item.imageUrl.empty and !item.imageUrl.startsWith('https://via.placeholder.com')}"
+                     class="text-muted">This item has no picture yet.</div>
+            </div>
+
+            <form th:action="@{/staff/inventory/items/{id}/image(id=${item.id})}" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <div class="mb-3">
+                    <label class="form-label" for="imageFile">New picture</label>
+                    <input id="imageFile" type="file" name="imageFile" class="form-control" required
+                           accept="image/jpeg,image/png,image/gif,image/webp">
+                    <div class="form-text">JPG, PNG, GIF or WebP, up to 5 MB. It replaces the current picture.</div>
+                    <img id="imagePreview" alt="Picture preview" class="rounded mt-2 d-none" style="max-height: 140px;">
+                </div>
+                <div class="d-flex justify-content-between">
+                    <a th:href="@{/staff/inventory/items}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save picture</button>
+                </div>
+            </form>
+
+            <form th:if="${item.imageUrl != null and !item.imageUrl.empty and !item.imageUrl.startsWith('https://via.placeholder.com')}"
+                  th:action="@{/staff/inventory/items/{id}/image/remove(id=${item.id})}" method="post" class="mt-3 pt-3 border-top"
+                  onsubmit="return confirm('Remove the picture from this item?');">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <button type="submit" class="btn btn-outline-danger btn-sm">Remove picture</button>
+            </form>
+        </div>
+    </div>
+</div>
+<script th:replace="~{staff/fragments :: scripts}"></script>
+<script>
+    document.getElementById('imageFile').addEventListener('change', function () {
+        var preview = document.getElementById('imagePreview');
+        var file = this.files[0];
+        if (file && file.size > 5 * 1024 * 1024) {
+            alert('That picture is larger than 5 MB. Please choose a smaller one.');
+            this.value = '';
+            file = null;
+        }
+        if (file) {
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('d-none');
+        } else {
+            preview.classList.add('d-none');
+        }
+    });
+</script>
+</body>
+</html>
